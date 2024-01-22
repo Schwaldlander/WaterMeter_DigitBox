@@ -44,5 +44,56 @@ IMG_HEIGHT, IMG_WIDTH = 224, 224  # Adjust as needed
 NUM_VERTICES = 8  # Max number of vertices; adjust as needed
 VERTEX_DIM = 2  # Each vertex has (x, y) coordinates
 
-# Define a CNN + LSTM model for variable-length polygon vertices
 
+
+import matplotlib.pyplot as plt
+import torch
+import matplotlib.patches as patches
+from PIL import Image
+def visualize_model_predictions(data_loader, model, num_images=5):
+    model.eval()  # Set the model to evaluation mode
+    images_processed = 0
+
+    with torch.no_grad():
+        for images, true_masks in val_dataloader:
+            if images_processed >= num_images:
+                break
+
+            # Get model predictions
+            images = images.permute(0,3,1,2)
+            predictions = model(images)
+
+            for img, true_mask, pred in zip(images, true_masks, predictions):
+                if images_processed >= num_images:
+                    break
+
+                img = img.cpu().numpy().transpose((1, 2, 0))
+                print(img.shape)
+                true_mask = true_mask.cpu().numpy().squeeze()
+                pred_mask = pred.cpu().numpy().squeeze()
+
+                # Plotting
+                pred_mask[ :, 0] = (IMG_HEIGHT / 2) + (IMG_HEIGHT * pred_mask[ :, 0])  # x-coordinates
+                pred_mask[:, 1] = (IMG_WIDTH / 2) + (IMG_WIDTH * pred_mask[ :, 1])  # y-coordinates
+                print(true_mask)
+                print(pred_mask)
+                # plt.figure(figsize=(12, 4))
+                fig, ax = plt.subplots()
+
+                # plt.subplot(1, 3, 1)
+                # plt.imshow(img)
+                ax.imshow(img)
+                polygon1 = patches.Polygon(pred_mask, linewidth=3, edgecolor='r', facecolor='none')
+                polygon2 = patches.Polygon(true_mask, linewidth=3, edgecolor='g', facecolor='none')
+                # Add the polygon to the Axes
+                ax.add_patch(polygon1)
+                ax.add_patch(polygon2)
+
+                plt.title('Image Contrast')
+                plt.show()
+                # ax.show()
+
+                images_processed += 1
+
+# Example usage
+visualize_model_predictions(data_loader, model, num_images=5)
